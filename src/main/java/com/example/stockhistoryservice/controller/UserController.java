@@ -2,6 +2,7 @@ package com.example.stockhistoryservice.controller;
 
 import com.example.stockhistoryservice.dto.RegisterRequest;
 import com.example.stockhistoryservice.service.AuthService;
+import com.example.stockhistoryservice.service.JwtService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/user")
@@ -17,6 +19,7 @@ import java.util.Map;
 public class UserController {
 
     private final AuthService authService;
+    private final JwtService jwtService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
@@ -43,5 +46,30 @@ public class UserController {
         response.put("status", "NOT_IMPLEMENTED");
 
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(response);
+    }
+    // ВРЕМЕННЫЙ метод для проверки работы JwtService - позже удалим!
+    @GetMapping("/test-jwt")
+    public  ResponseEntity<Map<String,String>> testJwt(){
+        // 1. Генерируем тестовые данные
+        UUID testUserId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+        String testEmail = "test@example.com";
+
+        // 2. Генерируем токен с помощью JwtService
+        String token = jwtService.generateToken(testUserId, testEmail);
+
+        // 3. Извлекаем данные обратно из токена для проверки
+        UUID extractedUserId = jwtService.getUserIdFromToken(token);
+        String extractedEmail = jwtService.getEmailFromToken(token);
+        boolean isValid = jwtService.validateToken(token);
+
+        // 4. Формируем ответ
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Тест JwtService выполнен успешно!");
+        response.put("generated_token", token);
+        response.put("extracted_userId", extractedUserId.toString());
+        response.put("extracted_email", extractedEmail);
+        response.put("is_token_valid", String.valueOf(isValid));
+
+        return ResponseEntity.ok(response);
     }
 }

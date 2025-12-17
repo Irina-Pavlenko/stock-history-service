@@ -9,7 +9,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class RegisterRequest {
+public class RegisterRequest { //Регистрация нового пользователя
     @NotBlank(message = "Введите адрес электронной почты")
     @Email(message = "Адрес электронной почты должен быть действительным")
     private String email;
@@ -17,7 +17,7 @@ public class RegisterRequest {
     @NotBlank(message = "Введите пароль")
     @Size(min = 6, message = "Пароль должен содержать не менее 6 символов")
     @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).*$",
-    message = "Пароль должен содержать цифры, строчные и заглавные буквы английского алфавита")
+    message = "Пароль должен содержать цифры, символы, строчные и заглавные буквы английского алфавита")
     private String password;
 
     private String fullName;

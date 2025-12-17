@@ -40,7 +40,9 @@ public class SecurityConfig {
                 // 3. Настраиваем авторизацию запросов
                 .authorizeHttpRequests(auth -> auth
                         // PUBLIC endpoints - доступны всем
+                        .requestMatchers("/api/user/test-jwt").permitAll()//ВРЕМЕННО
                         .requestMatchers("/api/user/register").permitAll()
+                        .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/error").permitAll()  // Важно для обработки ошибок
                         .requestMatchers("/actuator/**").permitAll()  // Для мониторинга
 
