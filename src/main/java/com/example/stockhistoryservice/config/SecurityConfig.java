@@ -1,5 +1,7 @@
 package com.example.stockhistoryservice.config;
 
+import com.example.stockhistoryservice.entity.User;
+import com.example.stockhistoryservice.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -7,11 +9,14 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -29,7 +34,24 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public UserDetailsService userDetailsService(UserRepository userRepository) {
+        return username -> {
+            // Находим пользователя по email (username = email в нашем случае)
+            User user = userRepository.findByEmail(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("Пользователь с email " + username + " не найден"));
+
+            // Преобразуем нашего User в Spring Security UserDetails
+            return org.springframework.security.core.userdetails.User.builder()
+                    .username(user.getEmail())
+                    .password(user.getPassword())
+                    .authorities("ROLE_USER")  // Базовая роль для всех пользователей
+                    .build();
+        };
+    }
+
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
                 // 1. Включаем CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -40,7 +62,7 @@ public class SecurityConfig {
                 // 3. Настраиваем авторизацию запросов
                 .authorizeHttpRequests(auth -> auth
                         // PUBLIC endpoints - доступны всем
-                        .requestMatchers("/api/user/test-jwt").permitAll()//ВРЕМЕННО
+                        //.requestMatchers("/api/user/test-jwt").permitAll()//ВРЕМЕННО для теста
                         .requestMatchers("/api/user/register").permitAll()
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/error").permitAll()  // Важно для обработки ошибок
@@ -64,7 +86,10 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
 
                 // 7. Отключаем базовую HTTP аутентификацию
-                .httpBasic(AbstractHttpConfigurer::disable);
+                .httpBasic(AbstractHttpConfigurer::disable)
+
+        // ★ 8. ДОБАВЛЯЕМ JWT ФИЛЬТР ★
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
