@@ -1,14 +1,19 @@
 package com.example.stockhistoryservice.controller;
 
 import com.example.stockhistoryservice.dto.RegisterRequest;
+import com.example.stockhistoryservice.dto.SaveStockRequest;
+import com.example.stockhistoryservice.entity.User;
+import com.example.stockhistoryservice.repository.UserRepository;
 import com.example.stockhistoryservice.service.AuthService;
 import com.example.stockhistoryservice.service.JwtService;
+import com.example.stockhistoryservice.service.StockService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,6 +31,8 @@ public class UserController {
 
     private final AuthService authService;
     private final JwtService jwtService;
+    private final StockService stockService;
+    private final UserRepository userRepository;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
@@ -44,15 +51,27 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(response);
     }
 
-    // заглушка для save
+    // Сохраняет исторические данные акций по запросу пользователя.
+    // Основной бизнес-метод приложения.
     @PostMapping("/save")
-    public ResponseEntity<?> saveStockData(@RequestBody Map<String, String> request) {
-        // TODO: Позже реализуем сохранение данных об акциях
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Endpoint /api/user/save ещё не реализован");
-        response.put("status", "NOT_IMPLEMENTED");
+    public ResponseEntity<Void> saveStockData(
 
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(response);
+            //Расшифровка аннотации @AuthenticationPrincipal:
+            //Spring Security автоматически передает аутентифицированного пользователя
+            //Это НЕ наша сущность User, а Spring Security User
+            //Из него берем username (это email)
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.User springUser,
+            @Valid @RequestBody SaveStockRequest request) {
+
+        // 1. Найти нашего User по email (из Spring Security User)
+        User user = userRepository.findByEmail(springUser.getUsername())
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+        // 2. Передать в StockService
+        stockService.saveStockData(user.getId(), request);
+
+        // 3. Вернуть статус 201 с пустым телом (по ТЗ)
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     // ВРЕМЕННЫЙ метод для проверки работы JwtService - позже удалим!

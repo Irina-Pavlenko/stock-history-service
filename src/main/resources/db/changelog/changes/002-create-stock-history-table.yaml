@@ -1,0 +1,73 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-create-stock-history-table
+      author: Irina_Pavlenko
+      changes:
+        # 1. Создаем таблицу stock_history
+        - createTable:
+            tableName: stock_history
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: ticker
+                  type: VARCHAR(10)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: date
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: open
+                  type: NUMERIC(10,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: close
+                  type: NUMERIC(10,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: high
+                  type: NUMERIC(10,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: low
+                  type: NUMERIC(10,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: volume
+                  type: BIGINT
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+
+        # 2. Добавляем внешний ключ на таблицу users
+        - addForeignKeyConstraint:
+            constraintName: fk_stock_history_user
+            baseTableName: stock_history
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+
+        # 3. Добавляем УНИКАЛЬНЫЙ констрейнт (важно для ТЗ!)
+        - addUniqueConstraint:
+            constraintName: uk_ticker_date_user  # ← То же имя, что в Java-классе!
+            tableName: stock_history
+            columnNames: ticker, date, user_id
