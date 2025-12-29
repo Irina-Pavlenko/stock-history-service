@@ -1,5 +1,6 @@
 package com.example.stockhistoryservice.controller;
 
+import com.example.stockhistoryservice.exception.TickerNotFoundException;
 import com.example.stockhistoryservice.exception.UserAlreadyExistsException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -39,7 +40,46 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
-    // 3. Обработка всех остальных непредвиденных ошибок
+    // 3. Обработка ошибки "Тикер не найден"
+    @ExceptionHandler(TickerNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleTickerNotFound(
+            TickerNotFoundException ex) {
+        log.warn("Тикер не найден: {}", ex.getMessage());
+
+        Map<String, String> error = new HashMap<>();
+        error.put("message", ex.getMessage());
+        error.put("error", "Unknown ticker");
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST) // 400
+                .body(error);
+    }
+
+    // 4. Обработка ошибок валидации дат (start > end)
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
+
+        // Проверяем, что это наша ошибка валидации дат
+        if (ex.getMessage() != null && ex.getMessage().contains("Ошибка валидации: дата начала")){
+            log.warn("Ошибка валидации дат: {}", ex.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("message", ex.getMessage());
+            error.put("error", "Недопустимый диапазон дат");
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST) //400
+                    .body(error);
+        }
+        // Если это не наша ошибка - все равно возвращаем 400 с сообщением
+        log.warn("Неизвестное IllegalArgumentException, но все равно возвращаем 400");
+        Map<String, String> error = new HashMap<>();
+        error.put("message", ex.getMessage());
+        error.put("error", "Ошибка валидации");
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(error);
+    }
+
+    // 5. Обработка всех остальных непредвиденных ошибок
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleAllUncaughtException(
             Exception ex,

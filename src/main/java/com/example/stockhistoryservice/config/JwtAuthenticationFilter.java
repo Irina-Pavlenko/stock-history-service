@@ -32,7 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         // 1. Пропускаем публичные эндпоинты
-        if (request.getServletPath().contains("/api/auth/login") ||
+        if (request.getServletPath().contains("/api/user/login") ||
                 request.getServletPath().contains("/api/user/register")) {
             filterChain.doFilter(request, response);
             return;

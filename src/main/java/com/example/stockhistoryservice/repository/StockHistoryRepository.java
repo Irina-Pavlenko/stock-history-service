@@ -11,9 +11,12 @@ public interface StockHistoryRepository extends JpaRepository<StockHistory, UUID
     // методы save(), findAll(), findById(), delete() и т.д.
     // уже унаследованы от родительских интерфейсов!
 
-    //Найти все сохраненные данные пользователя по тикеру
+    // Найти все сохраненные данные пользователя по тикеру
     List<StockHistory> findByUserIdAndTicker(UUID userId,String ticker);
 
-    //Проверить, существует ли уже запись для данного тикера, даты и пользователя
+    // Проверить, существует ли уже запись для данного тикера, даты и пользователя
     boolean existsByTickerAndDateAndUserId(String  ticker, LocalDate date, UUID userId);
+
+    //  Находит ВСЕ исторические данные акций для указанного пользователя.
+    List<StockHistory> findByUserId(UUID userId);
 }

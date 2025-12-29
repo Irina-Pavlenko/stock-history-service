@@ -1,6 +1,5 @@
 package com.example.stockhistoryservice.dto;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

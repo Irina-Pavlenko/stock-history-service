@@ -14,12 +14,6 @@ public class TickerService { //Сервис для работы со справ�
     // Это зависимость, которая внедряется через конструктор
     private final TickerRepository tickerRepository;
 
-    // Проверяет, существует ли тикер с указанным символом в справочнике
-    public boolean existsBySymbol(String symbol){
-        // Делегируем проверку репозиторию
-        return tickerRepository.existsBySymbol(symbol);
-    }
-
     // Находит тикер по символу или выбрасывает исключение если не найден
     public Ticker findBySymbolOrThrow(String symbol){
         // 1. Пытаемся найти тикер в репозитории

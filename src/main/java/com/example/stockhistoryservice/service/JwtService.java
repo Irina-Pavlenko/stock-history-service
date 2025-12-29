@@ -1,6 +1,5 @@
 package com.example.stockhistoryservice.service;
 
-import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,28 +34,18 @@ public class JwtService {
                 .claim("email", email)   // Дополнительные данные (email)
                 .issuedAt(now)              // Время создания
                 .expiration(expiryDate)     // Время истечения
-                .signWith(getSigningKey())  // Подпись ключом
+                .signWith(getSigningKey(),Jwts.SIG.HS256)  // Подпись ключом
                 .compact();                 // Финальное построение строки токена
     }
 
-    // Извлечение ID пользователя из токена
-    public UUID getUserIdFromToken(String token){
-        Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())   // Проверка подписи
-                .build()
-                .parseSignedClaims(token)      // Разбор токена
-                .getPayload();                 // Получение данных (claims)
-        return UUID.fromString(claims.getSubject());
-    }
-
     // Извлечение email из токена
-    public String getEmailFromToken(String token){
-        Claims claims = Jwts.parser()
+    public String getEmailFromToken(String token) {
+        return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
-                .getPayload();
-        return claims.get("email", String.class);
+                .getPayload()
+                .get("email", String.class);
     }
 
     // Проверка валидности токена (не истёк ли)

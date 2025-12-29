@@ -9,5 +9,4 @@ import java.util.Optional;
 @Repository
 public interface TickerRepository extends JpaRepository<Ticker, Long> {
     Optional<Ticker> findBySymbol(String symbol);
-    boolean existsBySymbol(String symbol);
 }

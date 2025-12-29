@@ -1,28 +1,25 @@
 package com.example.stockhistoryservice.controller;
 
+import com.example.stockhistoryservice.dto.LoginRequest;
+import com.example.stockhistoryservice.dto.LoginResponse;
 import com.example.stockhistoryservice.dto.RegisterRequest;
 import com.example.stockhistoryservice.dto.SaveStockRequest;
+import com.example.stockhistoryservice.entity.StockHistory;
 import com.example.stockhistoryservice.entity.User;
+import com.example.stockhistoryservice.repository.StockHistoryRepository;
 import com.example.stockhistoryservice.repository.UserRepository;
 import com.example.stockhistoryservice.service.AuthService;
-import com.example.stockhistoryservice.service.JwtService;
+//import com.example.stockhistoryservice.service.JwtService;
 import com.example.stockhistoryservice.service.StockService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.View;
 
-import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/user")
@@ -30,17 +27,27 @@ import java.util.stream.Collectors;
 public class UserController {
 
     private final AuthService authService;
-    private final JwtService jwtService;
+    //private final JwtService jwtService;
     private final StockService stockService;
     private final UserRepository userRepository;
+    private final StockHistoryRepository stockHistoryRepository;
+    private final View error;
 
+    // РЕГИСТРАЦИЯ
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    // заглушка для saved
+    //ЛОГИН
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    /* заглушка для saved
     @GetMapping("/saved")
     public ResponseEntity<?> getSavedStocks(@RequestParam(required = false) String ticker) {
         // TODO: Позже реализуем получение сохранённых акций
@@ -50,6 +57,7 @@ public class UserController {
 
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(response);
     }
+    */
 
     // Сохраняет исторические данные акций по запросу пользователя.
     // Основной бизнес-метод приложения.
@@ -73,6 +81,71 @@ public class UserController {
         // 3. Вернуть статус 201 с пустым телом (по ТЗ)
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
+
+    // ПОЛУЧЕНИЕ СОХРАНЕННЫХ ДАННЫХ АКЦИЙ
+    // Возвращает исторические данные акций, сохраненные пользователем
+    @GetMapping("/saved")
+    public ResponseEntity<?> getSavedStocks(
+            //автоматически внедряет аутентифицированного пользователя в метод контроллера(аннотация) через параметр springUser
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.User springUser,
+            @RequestParam(required = false) String ticker){ //Аннотация Spring MVC для получения параметров из URL запроса.
+        try { // УСПЕШНЫЙ СЦЕНАРИЙ
+            // 1. Найти нашего User по email
+            User user = userRepository.findByEmail(springUser.getUsername())
+                    .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+            System.out.println("Запрос сохранённых данных для: " + user.getEmail());
+
+            // 2. Получить данные из базы
+            List<StockHistory> stocks;
+            if (ticker != null && ticker.trim().isEmpty()) {
+                // Фильтр по тикеру
+                stocks = stockHistoryRepository.findByUserIdAndTicker(user.getId(), ticker.toUpperCase());
+
+                System.out.println("Фильтр по тикеру: " + ticker);
+
+            }else {
+                // Все данные пользователя
+                stocks = stockHistoryRepository.findByUserId(user.getId());
+                System.out.println("Запрошены все тикеры");
+            }
+            System.out.println("Найдено записей: " + stocks.size());
+
+            // 3. Преобразовать в формат ответа
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", user.getId().toString());
+            response.put("ticker", ticker != null ? ticker: "all");
+
+            // 4. Формируем массив данных
+            List<Map<String, Object>> dataList = new ArrayList<>();
+            for (StockHistory stock : stocks) {
+                Map<String, Object> dayData = new HashMap<>();
+                dayData.put("date", stock.getDate().toString());
+                dayData.put("open", stock.getOpen());
+                dayData.put("close", stock.getClose());
+                dayData.put("high", stock.getHigh());
+                dayData.put("low", stock.getLow());
+
+                dataList.add(dayData);
+            }
+            response.put("data", dataList);
+
+            return ResponseEntity.ok(response);
+
+            // ОШИБОЧНЫЙ СЦЕНАРИЙ
+        } catch (Exception e) {
+            System.err.println("Ошибка в /api/user/saved: " + e.getMessage());
+            e.printStackTrace();
+
+            Map<String, String> error = new HashMap<>();
+            error.put("message", "Ошибка при получении сохранённых данных: " + e.getMessage());
+        }
+        return ResponseEntity //Создаем HTTP ответ
+                .status(HttpStatus.INTERNAL_SERVER_ERROR) //Устанавливаем статус 500
+                .body(error); //Добавляем тело ответа (JSON с ошибкой)
+
+    }
+
 
     // ВРЕМЕННЫЙ метод для проверки работы JwtService - позже удалим!
    /* @GetMapping("/test-jwt")
@@ -100,7 +173,9 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 */
-    @GetMapping("/me")
+    //Вспомогательный эндпоигт для отладки и тестирования во время разработки
+    //Работает ли аутентификация
+    /*@GetMapping("/me")
     public ResponseEntity<Map<String, String>> getCurrentUser() {
         // 1. Получаем аутентификацию из SecurityContext (её установил JWT фильтр)
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -129,4 +204,5 @@ public class UserController {
 
         return ResponseEntity.ok(response);
     }
+     */
 }

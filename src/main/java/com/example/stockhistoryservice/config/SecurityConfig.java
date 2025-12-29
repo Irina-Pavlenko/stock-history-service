@@ -63,7 +63,7 @@ public class SecurityConfig {
                         // PUBLIC endpoints - доступны всем
                         //.requestMatchers("/api/user/test-jwt").permitAll()//ВРЕМЕННО для теста
                         .requestMatchers("/api/user/register").permitAll()
-                        .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers("/api/user/login").permitAll()
                         .requestMatchers("/error").permitAll()  // Важно для обработки ошибок
                         .requestMatchers("/actuator/**").permitAll()  // Для мониторинга
 
